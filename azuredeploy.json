@@ -1,0 +1,100 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "dnsName": {
+            "type": "string",
+            "defaultValue": "mystreaming"
+        },               
+        "location": {
+            "type": "string",
+            "defaultValue": "[resourceGroup().location]",
+            "metadata": {
+                "description": "Location for all resources."
+            }
+        },
+        "adminPassword":{
+            "type":"string",
+            "defaultValue": "[uniqueString(resourceGroup().id)]"
+        },
+        "streamPassword":{
+            "type":"string",
+            "defaultValue":"[newGuid()]"
+        }
+        
+
+    },
+    "variables": {
+        "cpuCores": 1,
+        "memoryInGb": 2,
+        "containerGroupName": "restreamer",
+        "containerName": "restreamer",
+        "containerImage": "datarhei/restreamer"
+    },
+    "resources": [       
+        {
+            "type": "Microsoft.ContainerInstance/containerGroups",
+            "name": "[variables('containerGroupName')]",
+            "apiVersion": "2018-10-01",
+            "location": "[parameters('location')]",
+            "properties": {
+                "containers": [
+                    {
+                        "name": "[variables('containerName')]",
+                        "properties": {
+                            "image": "[variables('containerImage')]",
+                            "environmentVariables": [
+                                {
+                                    "name": "RS_USERNAME",
+                                    "value": "admin"
+                                },
+                                {
+                                    "name": "RS_PASSWORD",
+                                    "value": "[parameters('adminPassword')]"
+                                },
+                                {
+                                    "name": "RS_TOKEN",
+                                    "value": "[parameters('streamPassword')]"
+                                }
+                            ],
+                            "resources": {
+                                "requests": {
+                                    "cpu": "[variables('cpuCores')]",
+                                    "memoryInGB": "[variables('memoryInGb')]"
+                                }
+                            },
+                            "ports": [
+                                {
+                                    "port": 1935 
+                                },
+                                {
+                                    "port": 8080
+                                }
+                            ],
+                            "volumeMounts": [                                
+                            ]
+                        }
+                    }
+                ],
+                "osType": "Linux",
+                "ipAddress": {
+                    "type": "Public",
+                    "ports": [
+                        {
+                            "protocol": "TCP",
+                            "port": 1935
+                        },
+                        {
+                            "protocol":"TCP",
+                            "port": 8080
+                        }                        
+                    ],
+                    "dnsNameLabel": "[parameters('dnsName')]"
+                },
+                "restartPolicy": "OnFailure",
+                "volumes": [                   
+                ]
+            }
+        }
+    ]
+}
